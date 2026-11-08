@@ -5,7 +5,7 @@
   "version": "${version}",
   "mcversion": "1.7.10",
   "authorList": ["djp440"],
-  "url": "https://github.com/djp440/AE2-NEI-Chain",
+  "url": "https://github.com/rt-game-440/AE2-NEI-Chain",
   "requiredMods": ["NotEnoughItems", "appliedenergistics2"],
   "dependencies": ["NotEnoughItems", "appliedenergistics2"],
   "useDependencyInformation": true
