@@ -22,7 +22,7 @@ import cpw.mods.fml.relauncher.Side;
 @Mod(
         modid = AE2NeiChain.MODID,
         name = "AE2 NEI Chain",
-        version = "1.0.0",
+        version = "1.1.0",
         dependencies = "required-after:NotEnoughItems;required-after:appliedenergistics2;after:NotEnoughEnergistics;after:ae2wct")
 public class AE2NeiChain {
 
