@@ -8,19 +8,21 @@ import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import io.netty.buffer.ByteBuf;
 
-/** 服务端 → 客户端：合成请求回执。crafted 为实际合成次数，error 为空表示无错误。 */
+/** 服务端 → 客户端：合成请求回执。crafted 为实际合成次数，toPlayer 为放进玩家背包的产物数量，error 为空表示无错误。 */
 public class PacketChainCraftResult implements IMessage {
 
     public int requestId;
     public int crafted;
     public String error;
+    public int toPlayer;
 
     public PacketChainCraftResult() {}
 
-    public PacketChainCraftResult(int requestId, int crafted, String error) {
+    public PacketChainCraftResult(int requestId, int crafted, String error, int toPlayer) {
         this.requestId = requestId;
         this.crafted = crafted;
         this.error = error == null ? "" : error;
+        this.toPlayer = toPlayer;
     }
 
     @Override
@@ -28,6 +30,7 @@ public class PacketChainCraftResult implements IMessage {
         requestId = buf.readInt();
         crafted = buf.readInt();
         error = ByteBufUtils.readUTF8String(buf);
+        toPlayer = buf.isReadable() ? buf.readInt() : 0;
     }
 
     @Override
@@ -35,6 +38,7 @@ public class PacketChainCraftResult implements IMessage {
         buf.writeInt(requestId);
         buf.writeInt(crafted);
         ByteBufUtils.writeUTF8String(buf, error);
+        buf.writeInt(toPlayer);
     }
 
     public static class Handler implements IMessageHandler<PacketChainCraftResult, IMessage> {

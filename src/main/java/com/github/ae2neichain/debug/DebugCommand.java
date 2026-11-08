@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.command.WrongUsageException;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -80,8 +81,8 @@ public class DebugCommand extends CommandBase {
         if (args.length < 1) throw new WrongUsageException(getCommandUsage(sender));
         final String sub = args[0];
         if ("report".equals(sub)) {
-            report(sender);
             if (args.length > 1 && "final".equals(args[1])) judge(sender);
+            report(sender);
             return;
         }
         final EntityPlayerMP player = getCommandSenderAsPlayer(sender);
@@ -214,7 +215,11 @@ public class DebugCommand extends CommandBase {
                             + " planks="
                             + count(storage, new ItemStack(Blocks.planks, 1, 0))
                             + " stick="
-                            + count(storage, new ItemStack(Items.stick)));
+                            + count(storage, new ItemStack(Items.stick))
+                            + " invStick="
+                            + countInv(sender, new ItemStack(Items.stick))
+                            + " invPlanks="
+                            + countInv(sender, new ItemStack(Blocks.planks, 1, 0)));
         }
         synchronized (TerminalChainCrafter.RECENT) {
             for (String line : TerminalChainCrafter.RECENT) DebugLog.log("RECENT " + line);
@@ -222,7 +227,16 @@ public class DebugCommand extends CommandBase {
         }
     }
 
-    /** 自测判定：目标 16 根木棍全部回存 ME，且原木确有消耗。 */
+    private static long countInv(ICommandSender sender, ItemStack stack) {
+        if (!(sender instanceof EntityPlayer)) return -1;
+        long n = 0;
+        for (ItemStack s : ((EntityPlayer) sender).inventory.mainInventory) {
+            if (s != null && s.isItemEqual(stack)) n += s.stackSize;
+        }
+        return n;
+    }
+
+    /** 自测判定：最终产物 16 根木棍进了背包，中间产物木板没有留在背包，且原木确有消耗。 */
     private static void judge(ICommandSender sender) {
         final IMEMonitor<IAEItemStack> storage = storage();
         if (storage == null) {
@@ -230,9 +244,25 @@ public class DebugCommand extends CommandBase {
             return;
         }
         final long logs = count(storage, new ItemStack(Blocks.log, 1, 0));
-        final long sticks = count(storage, new ItemStack(Items.stick));
-        final boolean pass = sticks >= 16 && logs < 64;
-        say(sender, "AUTOTEST RESULT " + (pass ? "PASS" : "FAIL") + " stick=" + sticks + " log=" + logs);
+        final long sticks = countInv(sender, new ItemStack(Items.stick));
+        final long planks = countInv(sender, new ItemStack(Blocks.planks, 1, 0));
+        // 木板是中间产物，不能进背包；木棍批量合成，请求数应很少
+        int requests = 0;
+        synchronized (TerminalChainCrafter.RECENT) {
+            for (String line : TerminalChainCrafter.RECENT) if (line.startsWith("craft ")) requests++;
+        }
+        final boolean pass = sticks >= 16 && planks == 0 && logs < 64 && requests <= 4;
+        say(
+                sender,
+                "AUTOTEST RESULT " + (pass ? "PASS" : "FAIL")
+                        + " requests="
+                        + requests
+                        + " invStick="
+                        + sticks
+                        + " invPlanks="
+                        + planks
+                        + " log="
+                        + logs);
     }
 
     private static void later(int ticks, Runnable task) {

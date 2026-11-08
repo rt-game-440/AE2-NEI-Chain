@@ -88,8 +88,10 @@ public class ChainAwareTerminalOverlayHandler implements IOverlayHandler {
         final PositionedStack resultPs = handler.getResultStack(recipeIndex);
         final ItemStack result = resultPs == null ? null : resultPs.item;
         final long before = countOf(firstGui, result);
+        final boolean isFinal = ChainSession.INSTANCE.isFinal(result);
 
-        ChainNetwork.sendToServer(new PacketChainCraft(id, multiplier, recipe));
+        ChainSession.INSTANCE.onSend(id, result, isFinal);
+        ChainNetwork.sendToServer(new PacketChainCraft(id, multiplier, recipe, isFinal));
 
         // 主线程调用无法阻塞等待（回执与 ME 同步都依赖主线程/网络线程推进），只发送不等待
         if (Thread.currentThread() == ClientState.mainThread) return true;
@@ -99,6 +101,7 @@ public class ChainAwareTerminalOverlayHandler implements IOverlayHandler {
         while (reply == null) {
             if (Minecraft.getMinecraft().currentScreen != firstGui || System.currentTimeMillis() > deadline) {
                 ClientState.RESULTS.remove(id);
+                ChainSession.INSTANCE.onTimeout(id);
                 DebugLog.log("合成请求 " + id + " 未收到回执（超时或界面已关闭）");
                 return false;
             }
@@ -108,11 +111,13 @@ public class ChainAwareTerminalOverlayHandler implements IOverlayHandler {
 
         DebugLog.log(
                 String.format(
-                        "合成请求 %d: %s x%d -> crafted=%d %s",
+                        "合成请求 %d: %s x%d -> crafted=%d toPlayer=%d final=%s %s",
                         id,
                         result == null ? "?" : result.getDisplayName(),
                         multiplier,
                         reply.crafted,
+                        reply.toPlayer,
+                        isFinal,
                         reply.error));
 
         if (reply.crafted <= 0) return false;

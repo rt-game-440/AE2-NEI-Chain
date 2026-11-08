@@ -20,13 +20,16 @@ public class PacketChainCraft implements IMessage {
     public int requestId;
     public int times;
     public NBTTagCompound recipe;
+    /** 本步产物是合成链的最终产物：优先放进玩家背包（放不下再存 ME）。 */
+    public boolean toPlayer;
 
     public PacketChainCraft() {}
 
-    public PacketChainCraft(int requestId, int times, NBTTagCompound recipe) {
+    public PacketChainCraft(int requestId, int times, NBTTagCompound recipe, boolean toPlayer) {
         this.requestId = requestId;
         this.times = times;
         this.recipe = recipe;
+        this.toPlayer = toPlayer;
     }
 
     @Override
@@ -34,6 +37,7 @@ public class PacketChainCraft implements IMessage {
         requestId = buf.readInt();
         times = buf.readInt();
         recipe = ByteBufUtils.readTag(buf);
+        toPlayer = buf.isReadable() && buf.readBoolean();
     }
 
     @Override
@@ -41,6 +45,7 @@ public class PacketChainCraft implements IMessage {
         buf.writeInt(requestId);
         buf.writeInt(times);
         ByteBufUtils.writeTag(buf, recipe);
+        buf.writeBoolean(toPlayer);
     }
 
     public static class Handler implements IMessageHandler<PacketChainCraft, IMessage> {

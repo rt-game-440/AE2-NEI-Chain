@@ -69,6 +69,7 @@ public final class TerminalChainCrafter {
         final EntityPlayerMP player;
         final PacketChainCraft msg;
         int crafted;
+        int toPlayer;
         String error = "";
 
         Job(EntityPlayerMP player, PacketChainCraft msg) {
@@ -88,7 +89,7 @@ public final class TerminalChainCrafter {
             while ((job = queue.poll()) != null) {
                 final long start = System.nanoTime();
                 try {
-                    job.crafted = process(job.player, job.msg);
+                    process(job);
                 } catch (CraftException e) {
                     job.error = e.getMessage();
                 } catch (Throwable t) {
@@ -96,11 +97,12 @@ public final class TerminalChainCrafter {
                     DebugLog.error("合成链请求处理异常", t);
                 }
                 final String line = String.format(
-                        "craft req=%d player=%s times=%d crafted=%d error=%s cost=%.1fms",
+                        "craft req=%d player=%s times=%d crafted=%d toPlayer=%d error=%s cost=%.1fms",
                         job.msg.requestId,
                         job.player.getCommandSenderName(),
                         job.msg.times,
                         job.crafted,
+                        job.toPlayer,
                         job.error.isEmpty() ? "-" : job.error,
                         (System.nanoTime() - start) / 1e6);
                 DebugLog.log(line);
@@ -112,7 +114,7 @@ public final class TerminalChainCrafter {
             }
         } else {
             for (Job job : replies) {
-                ChainNetwork.sendTo(new PacketChainCraftResult(job.msg.requestId, job.crafted, job.error), job.player);
+                ChainNetwork.sendTo(new PacketChainCraftResult(job.msg.requestId, job.crafted, job.error, job.toPlayer), job.player);
             }
             replies.clear();
         }
@@ -125,7 +127,9 @@ public final class TerminalChainCrafter {
         }
     }
 
-    private int process(EntityPlayerMP player, PacketChainCraft msg) throws Exception {
+    private void process(Job job) throws Exception {
+        final EntityPlayerMP player = job.player;
+        final PacketChainCraft msg = job.msg;
         final Container con = player.openContainer;
         if (!(con instanceof IContainerCraftingPacket)) throw new CraftException("not a crafting terminal");
         final IContainerCraftingPacket cct = (IContainerCraftingPacket) con;
@@ -192,7 +196,7 @@ public final class TerminalChainCrafter {
                 returnMatrix(player, matrix, storage, energy, src);
                 con.onCraftMatrixChanged(matrix);
                 con.detectAndSendChanges();
-                return 0;
+                throw new CraftException("missing ingredients");
             }
             matrix.setInventorySlotContents(x, got);
         }
@@ -218,14 +222,22 @@ public final class TerminalChainCrafter {
             final ItemStack crafted = (ItemStack) craftItem().invoke(output, player, request, storage, all);
             if (crafted == null || crafted.stackSize <= 0) break;
             craftedTimes += Math.max(1, crafted.stackSize / perCraft);
-            storeOrGive(player, crafted, storage, energy, src);
+            job.crafted = craftedTimes;
+            if (msg.toPlayer) job.toPlayer += giveToPlayer(player, crafted);
+            if (crafted.stackSize > 0) storeOrGive(player, crafted, storage, energy, src);
         }
 
         // 5. 合成格残留存回 ME
         returnMatrix(player, matrix, storage, energy, src);
         con.onCraftMatrixChanged(matrix);
         con.detectAndSendChanges();
-        return craftedTimes;
+    }
+
+    /** 尽量放进玩家背包，返回放入数量；stack.stackSize 变为剩余数量。 */
+    private static int giveToPlayer(EntityPlayerMP player, ItemStack stack) {
+        final int before = stack.stackSize;
+        player.inventory.addItemStackToInventory(stack);
+        return before - Math.max(0, stack.stackSize);
     }
 
     private static SlotCraftingTerm findOutputSlot(Container con) {

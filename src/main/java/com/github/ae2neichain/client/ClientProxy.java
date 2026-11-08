@@ -23,6 +23,7 @@ public class ClientProxy extends CommonProxy {
         FMLCommonHandler.instance().bus().register(this);
         FMLCommonHandler.instance().bus().register(ChainTestRunner.INSTANCE);
         FMLCommonHandler.instance().bus().register(AutoTest.INSTANCE);
+        FMLCommonHandler.instance().bus().register(ChainSession.INSTANCE);
     }
 
     @SubscribeEvent
@@ -39,6 +40,7 @@ public class ClientProxy extends CommonProxy {
 
     @Override
     public void onCraftResult(PacketChainCraftResult msg) {
+        ChainSession.INSTANCE.onReply(msg);
         ClientState.RESULTS.put(msg.requestId, msg);
     }
 

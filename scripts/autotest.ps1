@@ -43,7 +43,9 @@ try {
 
 if ($log) {
     "---- 调试日志: $($log.FullName)"
-    Select-String -Path $log.FullName -Pattern 'AUTOTEST|CHAINTEST|REPORT|RECENT|合成请求|包装 overlay|ERROR' | ForEach-Object { $_.Line }
+    Select-String -Path $log.FullName -Pattern 'AUTOTEST|CHAINTEST|CHAINSUMMARY|REPORT|RECENT|合成请求|包装 overlay|ERROR' | ForEach-Object { $_.Line }
+    # 聊天栏汇总也必须报告“完成”
+    if (-not (Select-String -Path $log.FullName -Pattern 'CHAINSUMMARY \[合成链\] 完成' -Quiet)) { $result = "$result（缺少聊天栏完成汇总）" -replace 'PASS', 'NOSUMMARY' }
 }
 if ($result -and $result -match 'PASS') { "==== 结果: PASS"; exit 0 }
 "==== 结果: FAIL（$result）"
