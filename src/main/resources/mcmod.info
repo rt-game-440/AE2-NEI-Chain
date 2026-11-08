@@ -1,0 +1,12 @@
+[{
+  "modid": "ae2neichain",
+  "name": "AE2 NEI Chain",
+  "description": "让 AE2 ME 合成终端 / 无线合成终端支持 NEI 书签合成链自动合成：材料取自 ME 网络，产物回存 ME 网络。",
+  "version": "${version}",
+  "mcversion": "1.7.10",
+  "authorList": ["djp440"],
+  "url": "https://github.com/djp440/AE2-NEI-Chain",
+  "requiredMods": ["NotEnoughItems", "appliedenergistics2"],
+  "dependencies": ["NotEnoughItems", "appliedenergistics2"],
+  "useDependencyInformation": true
+}]

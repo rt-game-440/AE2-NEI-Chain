@@ -1,0 +1,40 @@
+plugins {
+    id 'java-library'
+    id 'com.gtnewhorizons.retrofuturagradle' version '2.0.4'
+}
+
+group = 'com.github.ae2neichain'
+version = '1.0.0'
+base.archivesName = 'ae2neichain'
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
+
+minecraft {
+    mcVersion.set('1.7.10')
+    username.set('ChainTester')
+}
+
+// 编译期依赖：直接引用测试实例里的 mod jar（SRG 形态，仅访问 mod 自身的类/方法，不访问其继承自 MC 的成员）
+def modsDir = file("${project.property('gtnhInstance')}/.minecraft/mods")
+def modJar = { String prefix ->
+    def found = modsDir.listFiles()?.find { it.name.startsWith(prefix) && it.name.endsWith('.jar') }
+    if (found == null) throw new GradleException("在 ${modsDir} 中找不到 ${prefix}*.jar")
+    return found
+}
+
+dependencies {
+    compileOnly files(
+        modJar('NotEnoughItems-'),
+        modJar('CodeChickenCore-'),
+        modJar('appliedenergistics2-'),
+        modJar('+unimixins-all-'),
+        modJar('gtnhlib-'),
+    )
+}
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+
+tasks.named('processResources') {
+    filteringCharset = 'UTF-8'
+    inputs.property('version', project.version)
+    filesMatching('mcmod.info') { expand(version: project.version) }
+}

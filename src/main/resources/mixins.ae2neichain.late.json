@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "minVersion": "0.7.11",
+  "package": "com.github.ae2neichain.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [],
+  "client": [],
+  "injectors": { "defaultRequire": 1 }
+}
